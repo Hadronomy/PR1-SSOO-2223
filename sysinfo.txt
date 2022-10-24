@@ -1,0 +1,28 @@
+=========================================================
+[1;92mSystem info[0m for [1;34mHDR-CyA[0m
+Updated [1;31m10/24/22 08:00:19 AMUTC[0m by [1;34musuario[0m
+=========================================================
+
+[4;36m(?) INFO[0m
+[1;93m>> KERNEL: [0mLinux
+[1;93m>> KERNEL-VERSION: [0m#144-Ubuntu SMP Tue Sep 20 11:00:04 UTC 2022
+[1;93m>> KERNEL-RELEASE: [0m5.4.0-128-generic
+[1;93m>> NODE: [0mHDR-CyA
+[1;93m>> CPU: [0mx86_64
+[1;93m>> PLATFORM: [0mx86_64
+[1;93m>> OS: [0mGNU/Linux
+
+[4;36m(?) TERMINAL[0m
+[1;93m>> SHELL: [0m/usr/bin/fish
+
+[4;36m(?) UPTIME[0m
+[1;93m>>[0m  08:00:19 up 7 days, 27 min,  1 user,  load average: 0.05, 0.04, 0.00
+
+[4;36m(?) DRIVESPACE[0m
+[1;93m>> USED:[0m 58%
+[1;93m>> FREE:[0m 8.0G
+
+[4;36m(?) HOMESPACE[0m
+[1;93m>> USED:[0m 3.0G	/home/usuario
+
+

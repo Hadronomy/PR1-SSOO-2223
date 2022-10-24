@@ -105,7 +105,16 @@ TITLE="${GREEN_HI_B}System info${NC} for ${BLUE_B}${HOSTNAME}${NC}"
 RIGHT_NOW=$(date +"%x %r%Z")
 TIME_STAMP="Updated ${RED_B}${RIGHT_NOW}${NC} by ${BLUE_B}${USER}${NC}"
 
+## Options
+
+INTERACTIVE=
+FILENAME=sysinfo.txt
+
 ## Main program
+
+usage() {
+  echo -e "usage: ${CYAN_HI_B}sysinfo${NC} [-f filename] [-i] [-h]"
+}
 
 system_info() {
   echo -e "${CYAN_U}(?) INFO${NC}"
@@ -126,6 +135,9 @@ terminal_info() {
 show_uptime() {
   echo -e "${CYAN_U}(?) UPTIME${NC}"
   echo -e "${YELLOW_HI_B}>>${NC} $(uptime)"
+  if [ $(whoami) != "root" ]; then
+    ps --no-headers -U root,$(whoami) | wc -l | xargs -L1 echo -e "${YELLOW_HI_B}>> Progress count: ${NC}"
+  fi
 }
 
 drive_space() {
@@ -143,25 +155,31 @@ home_space() {
   fi
 }
 
-main() {
-  MESSAGE=$(cat <<EOF
+write_page() {   
+MESSAGE=$(cat <<EOF
 =========================================================
 ${TITLE}
 ${TIME_STAMP}
-=========================================================\n
+=========================================================
+
+$(system_info)
+
+$(terminal_info)
+
+$(show_uptime)
+
+$(drive_space)
+
+$(home_space)
+\n
 EOF
   )
   echo -e "$MESSAGE"
-  system_info
-  echo
-  terminal_info
-  echo
-  show_uptime
-  echo
-  drive_space
-  echo
-  home_space
-  echo
+}
+
+main() {
+  write_page
+  # write_page > ${PWD}/${FILENAME}
 }
 
 main
