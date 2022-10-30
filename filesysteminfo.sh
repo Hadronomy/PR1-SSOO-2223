@@ -101,7 +101,7 @@ if [ $SUDO_USER ]; then
 else
   USER=$(whoami)
 fi
-TITLE="${GREEN_HI_B}System filesystems${NC} for ${BLUE_B}${HOSTNAME}${NC}"
+TITLE="${GREEN_HI_B}Filesystems${NC} for ${BLUE_B}${HOSTNAME}${NC}"
 RIGHT_NOW=$(date +"%x %r%Z")
 TIME_STAMP="Updated ${RED_B}${RIGHT_NOW}${NC} by ${BLUE_B}${USER}${NC}"
 ARGS=$@
@@ -126,6 +126,9 @@ show_filesystems() {
   DF_TABLE=$(df -T | tail -n+2 | tr -s ' ')
   FS_BIGGEST=$(echo "${DF_TABLE}" | awk '$3 > max[$2] { max[$2] = $3; m[$2] = $0 }
      END { for (i in m) { printf "%s\n",m[i] } }' | sort -k1)
+  if [[ $invert ]]; then
+    FS_BIGGEST=$(echo "${FS_BIGGEST}" | sort -k1 -r)
+  fi
   # FS_BIGGEST=$(colorize_table "$FS_BIGGEST")
   echo -e "$FS_BIGGEST" | column -tN NAME,TYPE,SIZE,USED,AVAIL,USE,MOUNT
 }
