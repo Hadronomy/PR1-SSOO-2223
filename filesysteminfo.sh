@@ -152,26 +152,31 @@ EOF
   echo -e "${OUTPUT}"
 }
 
+parse_arguments() {
+  while [ "$1" != "" ]; do
+    case $1 in
+      -inv | --invert )
+        invert=1
+        ;;
+      -h | --help )
+        usage
+        exit
+        ;;
+      * )
+        usage
+        exit 1
+    esac
+    shift
+  done 
+}
+
 main() {
+  parse_arguments $@
   echo
   print_title
   echo
   show_filesystems
 }
 
-while [ "$1" != "" ]; do
-  case $1 in
-    -inv | --invert )
-      invert=1
-      ;;
-    -h | --help )
-      usage
-      exit
-      ;;
-    * )
-      usage
-      exit 1
-  esac
-  shift
-done
-main
+main $@
+
