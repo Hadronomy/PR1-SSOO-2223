@@ -130,7 +130,8 @@ show_filesystems() {
     FS_BIGGEST=$(echo "${FS_BIGGEST}" | sort -k1 -r)
   fi
   # FS_BIGGEST=$(colorize_table "$FS_BIGGEST")
-  echo -e "$FS_BIGGEST" | column -tN NAME,TYPE,SIZE,USED,AVAIL,USE,MOUNT
+  # echo -e "$FS_BIGGEST" | column -tN NAME,TYPE,SIZE,USED,AVAIL,USE,MOUNT
+  echo -e "NAME TYPE SIZE USED AVAIL USE MOUNT\n" "$FS_BIGGEST" | column -tc 7
 }
 
 usage() {
