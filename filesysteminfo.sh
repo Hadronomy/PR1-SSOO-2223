@@ -134,6 +134,15 @@ show_filesystems() {
   echo -e "NAME TYPE SIZE USED AVAIL USE MOUNT\n" "$FS_BIGGEST" | column -tc 7
 }
 
+modification() {
+  MEM_PERCENT=$(ps -A -o size --no-headers)
+  SUM=0
+  for ELEMENT in $MEM_PERCENT; do
+    SUM=$(($SUM+$ELEMENT))
+  done
+  echo $SUM
+}
+
 usage() {
   OUTPUT=$(cat <<EOF
 
@@ -176,6 +185,8 @@ main() {
   print_title
   echo
   show_filesystems
+  echo
+  modification
 }
 
 main $@
