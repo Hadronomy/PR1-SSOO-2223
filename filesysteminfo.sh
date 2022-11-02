@@ -123,7 +123,7 @@ colorize_table() {
 }
 
 show_filesystems() {
-  DF_TABLE=$(df -T | tail -n+2 | tr -s ' ')
+  DF_TABLE=$(df -aT | tail -n+2 | tr -s ' ')
   FS_BIGGEST=$(echo "${DF_TABLE}" | awk '$3 > max[$2] { max[$2] = $3; m[$2] = $0 }
      END { for (i in m) { printf "%s\n",m[i] } }' | sort -k1)
   if [[ $invert ]]; then
