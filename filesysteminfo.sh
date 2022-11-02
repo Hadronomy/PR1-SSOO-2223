@@ -135,7 +135,7 @@ show_filesystems() {
 }
 
 usage() {
-  OUTPUT=$(cat <<EOF
+  echo -e "$(cat <<EOF
 
 ${CYAN_B}# Usage${NC}
   ${YELLOW_B}>${NC} ${WHITE_B}filesysteminfo${NC} [options]
@@ -148,8 +148,7 @@ ${CYAN_B}# Options${NC}
   ${WHITE_B}--invert, -inv${NC}\tInverts the order in which the table is printed
 \n
 EOF
-  )
-  echo -e "${OUTPUT}"
+  )"
 }
 
 parse_arguments() {
