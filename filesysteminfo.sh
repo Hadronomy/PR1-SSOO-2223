@@ -122,8 +122,14 @@ colorize_table() {
   echo -e "$1" | xargs -n1 -L1 -I {} echo $(colorize_line $@)
 }
 
+warn() {
+  echo -e "${YELLOW_B}WARNING${NC} $1"
+}
+
 show_filesystems() {
-  HEADERS="NAME TYPE COUNT USED NLOW NHIGH MOUNT"
+  warn "If you don't have the required coreutils version, nlow & nhigh will show '?d'"
+  echo
+  HEADERS="NAME TYPE COUNT USED NLOW NHIGH PERMS MOUNT"
   DF_TABLE="$(df -aT | tail -n+2 | tr -s ' ')"
   AWK_COMMAND='
   {
@@ -137,15 +143,20 @@ show_filesystems() {
   }
   END { 
     for (i in name) {
-      nlow_cmd = "stat " mount[i] " --format=%Ld";
-      nhigh_cmd = "stat " mount[i] " --format=%Hd";
+      nlow_cmd = "stat " name[i] " --format=%Ld 2> /dev/null";
+      nhigh_cmd = "stat " name[i] " --format=%Hd 2> /dev/null";
+      perms_cmd = "ls -l " name[i] " 2> /dev/null | cut -d\" \" -f1";
       nlow_cmd | getline nlow;
       nhigh_cmd | getline nhigh;
-      if (nlow == "0" && nhigh == "0") {
+      perms_cmd | getline perms;
+      if (perms == "") {
+        perms = "*"
+      }
+      if (nlow == "" && nhigh == "") {
         nlow = "*"
         nhigh = "*"
       }
-      print name[i], i, count[i], used[i], nlow, nhigh, mount[i];
+      print name[i], i, count[i], used[i], nlow, nhigh, perms, mount[i];
     }
   }'
   FS_TABLE="$(echo -e "${DF_TABLE}" | awk "${AWK_COMMAND}")"
@@ -153,11 +164,11 @@ show_filesystems() {
   $5 != "*" {
     open_files_cmd = "lsof " $7 " 2> /dev/null | tail -n+2 | wc -l";
     open_files_cmd | getline open_files
-    print $1, $2, $3, $4, $5, $6, open_files, $7
+    print $1, $2, $3, $4, $5, $6, $7, open_files, $8
   }
   '
   if [[ $devicefiles ]]; then
-    HEADERS="NAME TYPE COUNT USED NLOW NHIGH OPEN MOUNT"
+    HEADERS="NAME TYPE COUNT USED NLOW NHIGH PERMS OPEN MOUNT"
     FS_TABLE="$(echo -e "${FS_TABLE}" | awk "${AWK_DEVICE_FILES}")"
   fi
   if [[ $invert ]]; then
@@ -167,12 +178,7 @@ show_filesystems() {
 }
 
 modification() {
-  MEM_PERCENT=$(ps -A -o size --no-headers)
-  SUM=0
-  for ELEMENT in $MEM_PERCENT; do
-    SUM=$(($SUM+$ELEMENT))
-  done
-  echo $SUM
+  echo
 }
 
 usage() {
@@ -187,6 +193,7 @@ ${CYAN_B}# Description${NC}
 ${CYAN_B}# Options${NC}
   ${WHITE_B}--help, -h${NC}\t\tShows this message
   ${WHITE_B}--invert, -inv${NC}\tInverts the order in which the table is printed
+  ${WHITE_B}-devicefiles${NC}
 \n
 EOF
   )"
