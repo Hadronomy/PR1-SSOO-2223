@@ -177,10 +177,6 @@ show_filesystems() {
   echo -e "${HEADERS}\n" "${FS_TABLE}" | column -tc 7
 }
 
-modification() {
-  echo
-}
-
 usage() {
   echo -e "$(cat <<EOF
 
@@ -227,7 +223,6 @@ main() {
   echo
   show_filesystems
   echo
-  modification
 }
 
 main $@
