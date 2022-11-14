@@ -123,7 +123,8 @@ colorize_table() {
 }
 
 show_filesystems() {
-  DF_TABLE=$(df -aT | tail -n+2 | tr -s ' ')
+  HEADERS="NAME TYPE COUNT USED NLOW NHIGH MOUNT"
+  DF_TABLE="$(df -aT | tail -n+2 | tr -s ' ')"
   AWK_COMMAND='
   {
     count[$2]++;
@@ -135,14 +136,34 @@ show_filesystems() {
     mount[$2] = $7;
   }
   END { 
-    for (i in name) 
-      print name[i], i, count[i], used[i], mount[i]
+    for (i in name) {
+      nlow_cmd = "stat " mount[i] " --format=%Ld";
+      nhigh_cmd = "stat " mount[i] " --format=%Hd";
+      nlow_cmd | getline nlow;
+      nhigh_cmd | getline nhigh;
+      if (nlow == "0" && nhigh == "0") {
+        nlow = "*"
+        nhigh = "*"
+      }
+      print name[i], i, count[i], used[i], nlow, nhigh, mount[i];
+    }
   }'
-  FS_BIGGEST=$(echo "${DF_TABLE}" | awk "$AWK_COMMAND")
-  if [[ $invert ]]; then
-    FS_BIGGEST=$(echo "${FS_BIGGEST}" | sort -k1 -r)
+  FS_TABLE="$(echo -e "${DF_TABLE}" | awk "${AWK_COMMAND}")"
+  AWK_DEVICE_FILES='
+  $5 != "*" {
+    open_files_cmd = "lsof " $7 " 2> /dev/null | tail -n+2 | wc -l";
+    open_files_cmd | getline open_files
+    print $1, $2, $3, $4, $5, $6, open_files, $7
+  }
+  '
+  if [[ $devicefiles ]]; then
+    HEADERS="NAME TYPE COUNT USED NLOW NHIGH OPEN MOUNT"
+    FS_TABLE="$(echo -e "${FS_TABLE}" | awk "${AWK_DEVICE_FILES}")"
   fi
-  echo -e "NAME TYPE COUNT USED MOUNT\n" "$FS_BIGGEST" | column -tc 7
+  if [[ $invert ]]; then
+    FS_TABLE=$(echo "${FS_TABLE}" | sort -k1 -r)
+  fi
+  echo -e "${HEADERS}\n" "${FS_TABLE}" | column -tc 7
 }
 
 usage() {
@@ -167,6 +188,9 @@ parse_arguments() {
     case $1 in
       -inv | --invert )
         invert=1
+        ;;
+      -devicefiles )
+        devicefiles=1
         ;;
       -h | --help )
         usage
