@@ -123,15 +123,47 @@ colorize_table() {
 }
 
 show_filesystems() {
-  DF_TABLE=$(df -T | tail -n+2 | tr -s ' ')
-  FS_BIGGEST=$(echo "${DF_TABLE}" | awk '$3 > max[$2] { max[$2] = $3; m[$2] = $0 }
-     END { for (i in m) { printf "%s\n",m[i] } }' | sort -k1)
-  if [[ $invert ]]; then
-    FS_BIGGEST=$(echo "${FS_BIGGEST}" | sort -k1 -r)
+  HEADERS="NAME TYPE COUNT USED NLOW NHIGH MOUNT"
+  DF_TABLE="$(df -aT | tail -n+2 | tr -s ' ')"
+  AWK_COMMAND='
+  {
+    count[$2]++;
+    used[$2] = used[$2] + $4;
+  }
+  $3 >= max[$2] { 
+    max[$2] = $3; 
+    name[$2] = $1;
+    mount[$2] = $7;
+  }
+  END { 
+    for (i in name) {
+      nlow_cmd = "stat " mount[i] " --format=%Ld";
+      nhigh_cmd = "stat " mount[i] " --format=%Hd";
+      nlow_cmd | getline nlow;
+      nhigh_cmd | getline nhigh;
+      if (nlow == "0" && nhigh == "0") {
+        nlow = "*"
+        nhigh = "*"
+      }
+      print name[i], i, count[i], used[i], nlow, nhigh, mount[i];
+    }
+  }'
+  FS_TABLE="$(echo -e "${DF_TABLE}" | awk "${AWK_COMMAND}")"
+  AWK_DEVICE_FILES='
+  $5 != "*" {
+    open_files_cmd = "lsof " $7 " 2> /dev/null | tail -n+2 | wc -l";
+    open_files_cmd | getline open_files
+    print $1, $2, $3, $4, $5, $6, open_files, $7
+  }
+  '
+  if [[ $devicefiles ]]; then
+    HEADERS="NAME TYPE COUNT USED NLOW NHIGH OPEN MOUNT"
+    FS_TABLE="$(echo -e "${FS_TABLE}" | awk "${AWK_DEVICE_FILES}")"
   fi
-  # FS_BIGGEST=$(colorize_table "$FS_BIGGEST")
-  # echo -e "$FS_BIGGEST" | column -tN NAME,TYPE,SIZE,USED,AVAIL,USE,MOUNT
-  echo -e "NAME TYPE SIZE USED AVAIL USE MOUNT\n" "$FS_BIGGEST" | column -tc 7
+  if [[ $invert ]]; then
+    FS_TABLE=$(echo "${FS_TABLE}" | sort -k1 -r)
+  fi
+  echo -e "${HEADERS}\n" "${FS_TABLE}" | column -tc 7
 }
 
 modification() {
@@ -144,7 +176,7 @@ modification() {
 }
 
 usage() {
-  OUTPUT=$(cat <<EOF
+  echo -e "$(cat <<EOF
 
 ${CYAN_B}# Usage${NC}
   ${YELLOW_B}>${NC} ${WHITE_B}filesysteminfo${NC} [options]
@@ -157,8 +189,7 @@ ${CYAN_B}# Options${NC}
   ${WHITE_B}--invert, -inv${NC}\tInverts the order in which the table is printed
 \n
 EOF
-  )
-  echo -e "${OUTPUT}"
+  )"
 }
 
 parse_arguments() {
@@ -166,6 +197,9 @@ parse_arguments() {
     case $1 in
       -inv | --invert )
         invert=1
+        ;;
+      -devicefiles )
+        devicefiles=1
         ;;
       -h | --help )
         usage
