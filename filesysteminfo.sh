@@ -124,14 +124,25 @@ colorize_table() {
 
 show_filesystems() {
   DF_TABLE=$(df -aT | tail -n+2 | tr -s ' ')
-  FS_BIGGEST=$(echo "${DF_TABLE}" | awk '$3 >= max[$2] { max[$2] = $3; m[$2] = $0 }
-     END { for (i in m) { printf "%s\n",m[i] } }' | sort -k1)
+  AWK_COMMAND='
+  {
+    count[$2]++;
+    used[$2] = used[$2] + $4;
+  }
+  $3 >= max[$2] { 
+    max[$2] = $3; 
+    name[$2] = $1;
+    mount[$2] = $7;
+  }
+  END { 
+    for (i in name) 
+      print name[i], i, count[i], used[i], mount[i]
+  }'
+  FS_BIGGEST=$(echo "${DF_TABLE}" | awk "$AWK_COMMAND")
   if [[ $invert ]]; then
     FS_BIGGEST=$(echo "${FS_BIGGEST}" | sort -k1 -r)
   fi
-  # FS_BIGGEST=$(colorize_table "$FS_BIGGEST")
-  # echo -e "$FS_BIGGEST" | column -tN NAME,TYPE,SIZE,USED,AVAIL,USE,MOUNT
-  echo -e "NAME TYPE SIZE USED AVAIL USE MOUNT\n" "$FS_BIGGEST" | column -tc 7
+  echo -e "NAME TYPE COUNT USED MOUNT\n" "$FS_BIGGEST" | column -tc 7
 }
 
 usage() {
