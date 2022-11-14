@@ -174,7 +174,7 @@ show_filesystems() {
   if [[ $invert ]]; then
     FS_TABLE=$(echo "${FS_TABLE}" | sort -k1 -r)
   fi
-  echo -e "${HEADERS}\n" "${FS_TABLE}" | column -tc 7
+  echo -e "${HEADERS}\n" "${FS_TABLE}" | column -t
 }
 
 usage() {
