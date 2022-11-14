@@ -156,7 +156,7 @@ show_filesystems() {
         nlow = "*"
         nhigh = "*"
       }
-      print name[i], i, count[i], used[i], nlow, nhigh, perms, mount[i];
+      print "\033[1;37m"name[i]"\033[0m", i, count[i], used[i], nlow, nhigh, perms, mount[i];
     }
   }'
   FS_TABLE="$(echo -e "${DF_TABLE}" | awk "${AWK_COMMAND}")"
@@ -174,7 +174,7 @@ show_filesystems() {
   if [[ $invert ]]; then
     FS_TABLE=$(echo "${FS_TABLE}" | sort -k1 -r)
   fi
-  echo -e "${HEADERS}\n" "${FS_TABLE}" | column -t
+  echo -e "${CYAN_B}${HEADERS}${NC}\n" "${FS_TABLE}" | column -t
 }
 
 usage() {
