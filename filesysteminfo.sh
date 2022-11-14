@@ -143,9 +143,12 @@ show_filesystems() {
   }
   END { 
     for (i in name) {
-      nlow_cmd = "stat " name[i] " --format=%Ld 2> /dev/null";
-      nhigh_cmd = "stat " name[i] " --format=%Hd 2> /dev/null";
+      nlow_cmd = "ls -l " name[i] " 2> /dev/null | cut -d\" \" -f6";
+      nhigh_cmd = "ls -l " name[i] " 2> /dev/null | cut -d\" \" -f5 | tr -d \",\"";
       perms_cmd = "ls -l " name[i] " 2> /dev/null | cut -d\" \" -f1";
+      nlow = "";
+      nhigh = "";
+      perms = "";
       nlow_cmd | getline nlow;
       nhigh_cmd | getline nhigh;
       perms_cmd | getline perms;
