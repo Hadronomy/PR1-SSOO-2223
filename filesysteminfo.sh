@@ -97,6 +97,7 @@ WHITE_HI_BG="\033[0;107m"
 ## Constants
 
 if [ $SUDO_USER ]; then
+  IS_SUDO=1
   USER=$SUDO_USER
 else
   USER=$(whoami)
@@ -113,71 +114,53 @@ print_title() {
   echo -e "${TIME_STAMP}"
 }
 
-colorize_line() {
-  echo -en "${CYAN_B}$(echo -en "$1" | cut -d' ' -f1)${NC} "
-  echo -e "$1" | cut -d' ' -f2-
-}
-
-colorize_table() {
-  echo -e "$1" | xargs -n1 -L1 -I {} echo $(colorize_line $@)
-}
-
-warn() {
-  echo -e "${YELLOW_B}WARNING${NC} $1"
-}
-
 show_filesystems() {
-  warn "If you don't have the required coreutils version, nlow & nhigh will show '?d'"
-  echo
-  HEADERS="NAME TYPE COUNT USED NLOW NHIGH PERMS MOUNT"
-  DF_TABLE="$(df -aT | tail -n+2 | tr -s ' ')"
-  AWK_COMMAND='
-  {
-    count[$2]++;
-    used[$2] = used[$2] + $4;
-  }
-  $3 >= max[$2] { 
-    max[$2] = $3; 
-    name[$2] = $1;
-    mount[$2] = $7;
-  }
-  END { 
-    for (i in name) {
-      nlow_cmd = "ls -l " name[i] " 2> /dev/null | cut -d\" \" -f6";
-      nhigh_cmd = "ls -l " name[i] " 2> /dev/null | cut -d\" \" -f5 | tr -d \",\"";
-      perms_cmd = "ls -l " name[i] " 2> /dev/null | cut -d\" \" -f1";
-      nlow = "";
-      nhigh = "";
-      perms = "";
-      nlow_cmd | getline nlow;
-      nhigh_cmd | getline nhigh;
-      perms_cmd | getline perms;
-      if (perms == "") {
-        perms = "*"
-      }
-      if (nlow == "" && nhigh == "") {
-        nlow = "*"
-        nhigh = "*"
-      }
-      print "\033[1;37m"name[i]"\033[0m", i, count[i], used[i], nlow, nhigh, perms, mount[i];
-    }
-  }'
-  FS_TABLE="$(echo -e "${DF_TABLE}" | awk "${AWK_COMMAND}")"
-  AWK_DEVICE_FILES='
-  $5 != "*" {
-    open_files_cmd = "lsof " $7 " 2> /dev/null | tail -n+2 | wc -l";
-    open_files_cmd | getline open_files
-    print $1, $2, $3, $4, $5, $6, $7, open_files, $8
-  }
-  '
+  HEADERS="NAME TYPE COUNT USED NLOW NHIGH MOUNT"
+  SORT_PARAMS=""
+  if [[ ${invert} ]]; then
+    SORT_PARAMS="-r"
+  fi
+  DF_TABLE="$(df -aT | tail -n+2 | tr -s ' ' | sort -k4,2 ${SORT_PARAMS} | awk '{ print $1, $2, $4, $7 }')"
+  FINAL_TABLE=""
+  PREVIOUS_TYPE=""
+  USAGE_SUM=0
+  PREV_IFS="${IFS}"
+  IFS=$'\n'
+  for line in $DF_TABLE; do
+    IFS=$' ' read -a LINE <<< "${line}"
+    if [[ "${PREVIOUS_TYPE}" != "${LINE[1]}" ]]; then
+      if [[ "${PREVIOUS_TYPE}" ]]; then
+        FINAL_TABLE="${FINAL_TABLE}${FS_NAME} ${FS_TYPE} ${COUNT} ${USAGE_SUM} ${FS_HIGH} ${FS_LOW}"
+        if [[ "${devicefiles}" ]]; then
+          FINAL_TABLE="${FINAL_TABLE} ${OPEN_FILE_COUNT}"
+        fi
+        FINAL_TABLE="${FINAL_TABLE} ${FS_MOUNT}\n"
+      fi
+      COUNT=1
+      PREVIOUS_TYPE="${LINE[1]}"
+      USAGE_SUM="${LINE[2]}"
+      FS_NAME="${LINE[0]}"
+      FS_TYPE="${LINE[1]}"
+      FS_MOUNT="${LINE[3]}"
+      FS_HIGH=$(ls -l ${FS_NAME} 2> /dev/null | cut -d" " -f5 | tr -d "," | tr -d "\n")
+      FS_LOW=$(ls -l ${FS_NAME} 2> /dev/null | cut -d" " -f6)
+      OPEN_FILE_COUNT=$(lsof ${FS_MOUNT} 2> /dev/null | tail -n+2 | wc -l)
+      if [[ ! "${FS_HIGH}" ]]; then
+        FS_HIGH="*"
+        FS_LOW="*"
+      fi
+    else
+      COUNT=$((${COUNT} + 1))
+      USAGE_SUM=$((${USAGE_SUM} + ${LINE[2]}))
+    fi
+  done
+  IFS="${PREV_IFS}"
+  FINAL_TABLE=$(echo -e "${FINAL_TABLE}" | sort -k1)
   if [[ $devicefiles ]]; then
-    HEADERS="NAME TYPE COUNT USED NLOW NHIGH PERMS OPEN MOUNT"
-    FS_TABLE="$(echo -e "${FS_TABLE}" | awk "${AWK_DEVICE_FILES}")"
+    HEADERS="NAME TYPE COUNT USED NLOW NHIGH OPEN MOUNT"
   fi
-  if [[ $invert ]]; then
-    FS_TABLE=$(echo "${FS_TABLE}" | sort -k1 -r)
-  fi
-  echo -e "${CYAN_B}${HEADERS}${NC}\n" "${FS_TABLE}" | column -t
+  # TODO: Invert previously
+  echo -e "${HEADERS}\n" "${FINAL_TABLE}" | column -t
 }
 
 usage() {
