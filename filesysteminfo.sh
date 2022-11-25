@@ -137,7 +137,6 @@ throw_if_existing() {
 
 show_filesystems() {
   HEADERS="NAME TYPE COUNT USED NLOW NHIGH MOUNT"
-  FILTER_PARAMS=""
   if [[ ${USERS_FILTER} ]]; then
     USERS_FILTER_FORMATED=$(echo "${USERS_FILTER}" | sed -r 's/ /|/g')
   fi
