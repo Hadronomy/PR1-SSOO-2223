@@ -261,6 +261,8 @@ parse_arguments() {
         F_DEVICE_FILES=1
         ;;
       -noheader )
+        throw_if_existing ${F_NO_HEADER} "-noheader"
+        F_NO_HEADER=1
         ;;
       -u )
         throw_if_existing ${F_USERS} "-u"
