@@ -201,6 +201,9 @@ show_filesystems() {
   if [[ ${F_DEVICE_FILES} ]]; then
     HEADERS="NAME TYPE COUNT USED NHIGH NLOW OPEN MOUNT"
   fi
+  if [[ ${F_NO_HEADER} ]]; then
+    HEADERS=""
+  fi
   echo -e "${YELLOW_B}${HEADERS}${NC}\n" "${FINAL_TABLE}" | column -t
 }
 
@@ -219,12 +222,14 @@ ${CYAN_B}# Options${NC}
   ${WHITE_B}-devicefiles${NC}\t\t Only shows device files type filesystems and counts
   \t\t\t the amount of files currently opened.
 
+  ${WHITE_B}-noheader${NC}\t\t Hides the table header.
+
   ${CYAN}> Filtering${NC}
   ${WHITE_B}-u <user1> <user2>... ${NC} Implies -devicefiles and only counts files opened
   \t\t\t by the specified users.
 
   ${CYAN}> Sorting${NC} 
-  ${WHITE_B}--invert, -inv${NC}\t Inverts the order in which the table is printed.
+  ${WHITE_B}--invert${NC}\t Inverts the order in which the table is printed.
   \t\t\t (Applies to any sorting mode)
 
   ${WHITE_B}-sopen${NC}\t\t Sort by opened files.
@@ -239,7 +244,7 @@ EOF
 parse_arguments() {
   while [[ "$1" != "" ]]; do
     case $1 in
-      -inv | --invert )
+      -inv )
         throw_if_existing ${F_INVERT} "-inv"
         F_INVERT=1
         ;;
@@ -254,6 +259,8 @@ parse_arguments() {
       -devicefiles )
         throw_if_existing ${F_DEVICE_FILES} "-devicefiles"
         F_DEVICE_FILES=1
+        ;;
+      -noheader )
         ;;
       -u )
         throw_if_existing ${F_USERS} "-u"
@@ -288,8 +295,7 @@ parse_arguments() {
     throw_error "Cannot have more than one sorting mode at a time"
   fi
   if [[ ${F_SOPEN} == "1" && ${F_DEVICE_FILES} != "1" ]]; then
-    throw_error "The ${WHITE_B}-sopen${NC} option requires the ${WHITE_B}-devicefiles${NC}\
-    option but it was not provided"
+    throw_error "The ${WHITE_B}-sopen${NC} option requires the ${WHITE_B}-devicefiles${NC} option but it was not provided"
   fi
 }
 
