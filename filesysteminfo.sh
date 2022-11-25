@@ -107,6 +107,12 @@ RIGHT_NOW=$(date +"%x %r%Z")
 TIME_STAMP="Updated ${RED_B}${RIGHT_NOW}${NC} by ${BLUE_B}${USER}${NC}"
 ARGS=$@
 
+## Flags
+F_INVERT=""
+F_SOPEN=""
+F_SDEVICE=""
+F_DEVICE_FILES=""
+
 ## Main program
 
 print_title() {
@@ -114,13 +120,35 @@ print_title() {
   echo -e "${TIME_STAMP}"
 }
 
+throw_error() {
+  echo -e "${RED_B}ERROR${NC}\t$1"
+  echo -e "${WHITE_B}Use the --help option for more information${NC}"
+  exit 1
+}
+
+throw_if_existing() {
+  if [[ $1 == 1 ]]; then
+    throw_error "The ${WHITE_B}$2${NC} has already been specified"
+  fi
+}
+
 show_filesystems() {
   HEADERS="NAME TYPE COUNT USED NLOW NHIGH MOUNT"
-  SORT_PARAMS=""
-  if [[ ${invert} ]]; then
-    SORT_PARAMS="-r"
+  FILTER_PARAMS=""
+  if [[ ${USERS_FILTER} ]]; then
+    USERS_FILTER_FORMATED=$(echo "${USERS_FILTER}" | sed -r 's/ //g')
   fi
-  DF_TABLE="$(df -aT | tail -n+2 | tr -s ' ' | sort -k4,2 ${SORT_PARAMS} | awk '{ print $1, $2, $4, $7 }')"
+  SORT_COLUMN=1
+  SORT_PARAMS="-n"
+  if [[ ${F_SOPEN} ]]; then
+    SORT_COLUMN=7
+  elif [[ ${F_SDEVICE} ]]; then
+    SORT_COLUMN=3
+  fi
+  if [[ ${F_INVERT} ]]; then
+    SORT_PARAMS="${SORT_PARAMS} -r"
+  fi
+  DF_TABLE="$(df -aT | tail -n+2 | tr -s ' ' | sort -k4,2 | awk '{ print $1, $2, $4, $7 }')"
   FINAL_TABLE=""
   PREVIOUS_TYPE=""
   USAGE_SUM=0
@@ -130,11 +158,15 @@ show_filesystems() {
     IFS=$' ' read -a LINE <<< "${line}"
     if [[ "${PREVIOUS_TYPE}" != "${LINE[1]}" ]]; then
       if [[ "${PREVIOUS_TYPE}" ]]; then
-        FINAL_TABLE="${FINAL_TABLE}${FS_NAME} ${FS_TYPE} ${COUNT} ${USAGE_SUM} ${FS_HIGH} ${FS_LOW}"
-        if [[ "${devicefiles}" ]]; then
-          FINAL_TABLE="${FINAL_TABLE} ${OPEN_FILE_COUNT}"
+        if [[ "${FS_HIGH}" != "*" || ${F_DEVICE_FILES} != 1 ]]; then
+          # Adds rows to the final table
+          FINAL_TABLE="${FINAL_TABLE}${WHITE_B}${FS_NAME}${NC}"
+          FINAL_TABLE="${FINAL_TABLE} ${FS_TYPE} ${COUNT} ${USAGE_SUM} ${FS_HIGH} ${FS_LOW}"
+          if [[ "${F_DEVICE_FILES}" ]]; then
+            FINAL_TABLE="${FINAL_TABLE} ${OPEN_FILE_COUNT}"
+          fi
+          FINAL_TABLE="${FINAL_TABLE} ${FS_MOUNT}\n"
         fi
-        FINAL_TABLE="${FINAL_TABLE} ${FS_MOUNT}\n"
       fi
       COUNT=1
       PREVIOUS_TYPE="${LINE[1]}"
@@ -144,7 +176,11 @@ show_filesystems() {
       FS_MOUNT="${LINE[3]}"
       FS_HIGH=$(ls -l ${FS_NAME} 2> /dev/null | cut -d" " -f5 | tr -d "," | tr -d "\n")
       FS_LOW=$(ls -l ${FS_NAME} 2> /dev/null | cut -d" " -f6)
-      OPEN_FILE_COUNT=$(lsof ${FS_MOUNT} 2> /dev/null | tail -n+2 | wc -l)
+      if [[ ${USERS_FILTER} ]]; then
+        OPEN_FILE_COUNT=$(lsof ${FS_MOUNT} 2> /dev/null | tail -n+2 | tr -s ' ' | cut -d' ' -f3 | grep -E -i $USERS_FILTER_FORMATED | wc -l)
+      else
+        OPEN_FILE_COUNT=$(lsof ${FS_MOUNT} 2> /dev/null | tail -n+2 | wc -l)
+      fi
       if [[ ! "${FS_HIGH}" ]]; then
         FS_HIGH="*"
         FS_LOW="*"
@@ -155,40 +191,76 @@ show_filesystems() {
     fi
   done
   IFS="${PREV_IFS}"
-  FINAL_TABLE=$(echo -e "${FINAL_TABLE}" | sort -k1)
-  if [[ $devicefiles ]]; then
+  FINAL_TABLE=$(echo -e "${FINAL_TABLE}" | sort -k${SORT_COLUMN} ${SORT_PARAMS})
+  if [[ ${F_DEVICE_FILES} ]]; then
     HEADERS="NAME TYPE COUNT USED NLOW NHIGH OPEN MOUNT"
   fi
-  # TODO: Invert previously
-  echo -e "${HEADERS}\n" "${FINAL_TABLE}" | column -t
+  echo -e "${YELLOW_B}${HEADERS}${NC}\n" "${FINAL_TABLE}" | column -t
 }
 
 usage() {
   echo -e "$(cat <<EOF
 
-${CYAN_B}# Usage${NC}
-  ${YELLOW_B}>${NC} ${WHITE_B}filesysteminfo${NC} [options]
+${YELLOW_B}>${NC} ${WHITE_B}filesysteminfo${NC} [options]
 
 ${CYAN_B}# Description${NC}
-  Shows the systems mounted filesystems
+  Shows the system mounted filesystems
 
 ${CYAN_B}# Options${NC}
-  ${WHITE_B}--help, -h${NC}\t\tShows this message
-  ${WHITE_B}--invert, -inv${NC}\tInverts the order in which the table is printed
-  ${WHITE_B}-devicefiles${NC}
+  ${WHITE_B}--help, -h${NC}\t\t Shows this message.
+
+  ${CYAN}> Misc${NC}
+  ${WHITE_B}-devicefiles${NC}\t\t Only shows device files type filesystems and counts
+  \t\t\t the amount of files currently opened.
+
+  ${CYAN}> Filtering${NC}
+  ${WHITE_B}-u <user1> <user2>... ${NC} Implies -devicefiles and only counts files opened
+  \t\t\t by the specified users.
+
+  ${CYAN}> Sorting${NC} 
+  ${WHITE_B}--invert, -inv${NC}\t Inverts the order in which the table is printed.
+  \t\t\t (Applies to any sorting mode)
+
+  ${WHITE_B}-sopen${NC}\t\t Sort by opened files.
+  \t\t\t (Requires -devicefiles)
+
+  ${WHITE_B}-sdevice${NC}\t\t Sort by filesystem count.
 \n
 EOF
   )"
 }
 
 parse_arguments() {
-  while [ "$1" != "" ]; do
+  while [[ "$1" != "" ]]; do
     case $1 in
       -inv | --invert )
-        invert=1
+        F_INVERT=1
+        ;;
+      -sopen )
+        F_SOPEN=1
+        ;;
+      -sdevice )
+        F_SDEVICE=1
         ;;
       -devicefiles )
-        devicefiles=1
+        F_DEVICE_FILES=1
+        ;;
+      -u )
+        USERS_FILTER=""
+        F_DEVICE_FILES=1
+        shift
+        while [[ "$1" != "" && "${1:0:1}" != "-" ]]; do
+          if [[ ! ${USERS_FILTER} ]]; then
+            USERS_FILTER="$1"
+            shift
+            continue
+          fi
+          USERS_FILTER="${USERS_FILTER} $1"
+          shift
+        done
+        if [[ ! ${USERS_FILTER} ]]; then
+          throw_error "The -u option requires a list of users but none was provided"
+        fi
         ;;
       -h | --help )
         usage
@@ -199,7 +271,14 @@ parse_arguments() {
         exit 1
     esac
     shift
-  done 
+  done
+  if [[ ${F_SOPEN} == 1 && ${F_SDEVICE} == 1 ]]; then
+    throw_error "Cannot have more than one sorting mode at a time"
+  fi
+  if [[ ${F_SOPEN} == 1 && ${F_DEVICE_FILES} != 1 ]]; then
+    throw_error "The ${WHITE_B}-sopen${NC} option requires the ${WHITE_B}-devicefiles${NC}\
+    option but it was not provided"
+  fi
 }
 
 main() {
