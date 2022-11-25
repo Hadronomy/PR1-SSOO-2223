@@ -125,7 +125,7 @@ warn() {
 
 throw_error() {
   echo -e "${RED_BG}  ERROR  ${NC} ${1:-"Unknown error"}"
-  echo -e "${WHITE_B}Use the --help option for more information${NC}"
+  echo -e "${WHITE_B}Use the ${CYAN}--help${NC} option for more information${NC}"
   exit 1
 }
 
@@ -306,11 +306,11 @@ parse_arguments() {
 }
 
 main() {
+  echo
   if [[ ${SUDO_USER} ]]; then
     warn "Executing as sudo"
   fi
   parse_arguments $@
-  echo
   print_title
   echo
   show_filesystems
