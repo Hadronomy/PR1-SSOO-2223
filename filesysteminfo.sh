@@ -97,7 +97,6 @@ WHITE_HI_BG="\033[0;107m"
 ## Constants
 
 if [ $SUDO_USER ]; then
-  IS_SUDO=1
   USER=$SUDO_USER
 else
   USER=$(whoami)
@@ -120,15 +119,19 @@ print_title() {
   echo -e "${TIME_STAMP}"
 }
 
+warn() {
+  echo -e "${YELLOW_B}WARNING${NC}\t${1}"
+}
+
 throw_error() {
-  echo -e "${RED_B}ERROR${NC}\t$1"
+  echo -e "${RED_B}ERROR${NC}\t${1:-"Unknown error"}"
   echo -e "${WHITE_B}Use the --help option for more information${NC}"
   exit 1
 }
 
 throw_if_existing() {
-  if [[ $1 == 1 ]]; then
-    throw_error "The ${WHITE_B}$2${NC} has already been specified"
+  if [[ $1 == "1" ]]; then
+    throw_error "The ${WHITE_B}$2${NC} option has already been specified"
   fi
 }
 
@@ -136,7 +139,7 @@ show_filesystems() {
   HEADERS="NAME TYPE COUNT USED NLOW NHIGH MOUNT"
   FILTER_PARAMS=""
   if [[ ${USERS_FILTER} ]]; then
-    USERS_FILTER_FORMATED=$(echo "${USERS_FILTER}" | sed -r 's/ //g')
+    USERS_FILTER_FORMATED=$(echo "${USERS_FILTER}" | sed -r 's/ /|/g')
   fi
   SORT_COLUMN=1
   SORT_PARAMS="-n"
@@ -145,7 +148,7 @@ show_filesystems() {
   elif [[ ${F_SDEVICE} ]]; then
     SORT_COLUMN=3
   fi
-  if [[ ! ${F_INVERT} ]]; then
+  if [[ ${F_INVERT} ]]; then
     SORT_PARAMS="${SORT_PARAMS} -r"
   fi
   DF_TABLE="$(df -aT | tail -n+2 | tr -s ' ' | sort -k4,2 | awk '{ print $1, $2, $4, $7 }')"
@@ -174,16 +177,19 @@ show_filesystems() {
       FS_NAME="${LINE[0]}"
       FS_TYPE="${LINE[1]}"
       FS_MOUNT="${LINE[3]}"
-      FS_HIGH=$(ls -l ${FS_NAME} 2> /dev/null | cut -d" " -f5 | tr -d "," | tr -d "\n")
-      FS_LOW=$(ls -l ${FS_NAME} 2> /dev/null | cut -d" " -f6)
+      FS_HIGH=$(stat -c %T ${FS_NAME} 2> /dev/null)
+      FS_LOW=$(stat -c %t ${FS_NAME} 2> /dev/null)
       if [[ ${USERS_FILTER} ]]; then
-        OPEN_FILE_COUNT=$(lsof ${FS_MOUNT} 2> /dev/null | tail -n+2 | tr -s ' ' | cut -d' ' -f3 | grep -E -i $USERS_FILTER_FORMATED | wc -l)
+        OPEN_FILE_COUNT=$(lsof ${FS_NAME} 2> /dev/null | tail -n+2 | tr -s ' ' | cut -d' ' -f3 | grep -E -i "^${USERS_FILTER_FORMATED}$" | wc -l)
       else
-        OPEN_FILE_COUNT=$(lsof ${FS_MOUNT} 2> /dev/null | tail -n+2 | wc -l)
+        OPEN_FILE_COUNT=$(lsof ${FS_NAME} 2> /dev/null | tail -n+2 | wc -l)
       fi
       if [[ ! "${FS_HIGH}" ]]; then
         FS_HIGH="*"
         FS_LOW="*"
+      else
+        FS_HIGH=$((16#${FS_HIGH}))
+        FS_LOW=$((16#${FS_LOW}))
       fi
     else
       COUNT=$((${COUNT} + 1))
@@ -193,7 +199,7 @@ show_filesystems() {
   IFS="${PREV_IFS}"
   FINAL_TABLE=$(echo -e "${FINAL_TABLE}" | sort -k${SORT_COLUMN} ${SORT_PARAMS})
   if [[ ${F_DEVICE_FILES} ]]; then
-    HEADERS="NAME TYPE COUNT USED NLOW NHIGH OPEN MOUNT"
+    HEADERS="NAME TYPE COUNT USED NHIGH NLOW OPEN MOUNT"
   fi
   echo -e "${YELLOW_B}${HEADERS}${NC}\n" "${FINAL_TABLE}" | column -t
 }
@@ -234,19 +240,25 @@ parse_arguments() {
   while [[ "$1" != "" ]]; do
     case $1 in
       -inv | --invert )
+        throw_if_existing ${F_INVERT} "-inv"
         F_INVERT=1
         ;;
       -sopen )
+        throw_if_existing ${F_SOPEN} "-sopen"
         F_SOPEN=1
         ;;
       -sdevice )
+        throw_if_existing ${F_SDEVICE} "-sdevice"
         F_SDEVICE=1
         ;;
       -devicefiles )
+        throw_if_existing ${F_DEVICE_FILES} "-devicefiles"
         F_DEVICE_FILES=1
         ;;
       -u )
+        throw_if_existing ${F_USERS} "-u"
         USERS_FILTER=""
+        F_USERS=1
         F_DEVICE_FILES=1
         shift
         while [[ "$1" != "" && "${1:0:1}" != "-" ]]; do
@@ -272,16 +284,19 @@ parse_arguments() {
     esac
     shift
   done
-  if [[ ${F_SOPEN} == 1 && ${F_SDEVICE} == 1 ]]; then
+  if [[ ${F_SOPEN} == "1" && ${F_SDEVICE} == "1" ]]; then
     throw_error "Cannot have more than one sorting mode at a time"
   fi
-  if [[ ${F_SOPEN} == 1 && ${F_DEVICE_FILES} != 1 ]]; then
+  if [[ ${F_SOPEN} == "1" && ${F_DEVICE_FILES} != "1" ]]; then
     throw_error "The ${WHITE_B}-sopen${NC} option requires the ${WHITE_B}-devicefiles${NC}\
     option but it was not provided"
   fi
 }
 
 main() {
+  if [[ ${SUDO_USER} ]]; then
+    warn "Executing as sudo"
+  fi
   parse_arguments $@
   echo
   print_title
