@@ -120,11 +120,11 @@ print_title() {
 }
 
 warn() {
-  echo -e "${YELLOW_B}WARNING${NC}\t${1}"
+  echo -e "${BLACK}${YELLOW_BG} WARNING ${NC} ${1}"
 }
 
 throw_error() {
-  echo -e "${RED_B}ERROR${NC}\t${1:-"Unknown error"}"
+  echo -e "${RED_BG}  ERROR  ${NC} ${1:-"Unknown error"}"
   echo -e "${WHITE_B}Use the --help option for more information${NC}"
   exit 1
 }
