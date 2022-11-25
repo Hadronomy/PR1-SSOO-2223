@@ -121,6 +121,7 @@ print_title() {
 
 warn() {
   echo -e "${BLACK}${YELLOW_BG} WARNING ${NC} ${1}"
+  echo
 }
 
 throw_error() {
