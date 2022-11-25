@@ -161,7 +161,7 @@ show_filesystems() {
     IFS=$' ' read -a LINE <<< "${line}"
     if [[ "${PREVIOUS_TYPE}" != "${LINE[1]}" ]]; then
       if [[ "${PREVIOUS_TYPE}" ]]; then
-        if [[ "${FS_HIGH}" != "*" || ${F_DEVICE_FILES} != 1 ]]; then
+        if [[ "${FS_HIGH}" != "*" || ${F_DEVICE_FILES} != "1" ]]; then
           # Adds rows to the final table
           FINAL_TABLE="${FINAL_TABLE}${WHITE_B}${FS_NAME}${NC}"
           FINAL_TABLE="${FINAL_TABLE} ${FS_TYPE} ${COUNT} ${USAGE_SUM} ${FS_HIGH} ${FS_LOW}"
