@@ -127,6 +127,7 @@ warn() {
 throw_error() {
   echo -e "${RED_BG}  ERROR  ${NC} ${1:-"Unknown error"}"
   echo -e "${WHITE_B}Use the ${CYAN}--help${NC} option for more information${NC}"
+  echo
   exit 1
 }
 
@@ -229,7 +230,7 @@ ${CYAN_B}# Options${NC}
   \t\t\t by the specified users.
 
   ${CYAN}> Sorting${NC} 
-  ${WHITE_B}--invert${NC}\t Inverts the order in which the table is printed.
+  ${WHITE_B}--invert${NC}\t\t Inverts the order in which the table is printed.
   \t\t\t (Applies to any sorting mode)
 
   ${WHITE_B}-sopen${NC}\t\t Sort by opened files.
@@ -242,6 +243,10 @@ EOF
 }
 
 parse_arguments() {
+  if [[ "$1" != "" ]]; then
+    usage
+    exit 0
+  fi
   while [[ "$1" != "" ]]; do
     case $1 in
       -inv )
@@ -286,11 +291,10 @@ parse_arguments() {
         ;;
       -h | --help )
         usage
-        exit
+        exit 0
         ;;
       * )
-        usage
-        exit 1
+        throw_error "Unexpected parameter"
     esac
     if [[ ${SKIP_SHIFT} == "1" ]]; then
       SKIP_SHIFT=""
