@@ -160,7 +160,7 @@ show_filesystems() {
     IFS=$' ' read -a LINE <<< "${line}"
     if [[ "${PREVIOUS_TYPE}" != "${LINE[1]}" ]]; then
       if [[ "${PREVIOUS_TYPE}" ]]; then
-        if [[ "${FS_HIGH}" != "*" || ${F_DEVICE_FILES} != 1 ]]; then
+        if [[ true ]]; then
           # Adds rows to the final table
           FINAL_TABLE="${FINAL_TABLE}${WHITE_B}${FS_NAME}${NC}"
           FINAL_TABLE="${FINAL_TABLE} ${FS_TYPE} ${COUNT} ${USAGE_SUM} ${FS_HIGH} ${FS_LOW}"
@@ -281,6 +281,7 @@ parse_arguments() {
         if [[ ! ${USERS_FILTER} ]]; then
           throw_error "The -u option requires a list of users but none was provided"
         fi
+        SKIP_SHIFT=1
         ;;
       -h | --help )
         usage
@@ -290,6 +291,10 @@ parse_arguments() {
         usage
         exit 1
     esac
+    if [[ ${SKIP_SHIFT} == "1" ]]; then
+      SKIP_SHIFT=""
+      continue
+    fi
     shift
   done
   if [[ ${F_SOPEN} == "1" && ${F_SDEVICE} == "1" ]]; then
