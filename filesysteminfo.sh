@@ -145,7 +145,7 @@ show_filesystems() {
   elif [[ ${F_SDEVICE} ]]; then
     SORT_COLUMN=3
   fi
-  if [[ ${F_INVERT} ]]; then
+  if [[ ! ${F_INVERT} ]]; then
     SORT_PARAMS="${SORT_PARAMS} -r"
   fi
   DF_TABLE="$(df -aT | tail -n+2 | tr -s ' ' | sort -k4,2 | awk '{ print $1, $2, $4, $7 }')"
