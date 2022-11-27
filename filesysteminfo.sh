@@ -243,7 +243,7 @@ EOF
 }
 
 parse_arguments() {
-  if [[ "$1" != "" ]]; then
+  if [[ "$1" == "" ]]; then
     usage
     exit 0
   fi
