@@ -243,10 +243,6 @@ EOF
 }
 
 parse_arguments() {
-  if [[ "$1" == "" ]]; then
-    usage
-    exit 0
-  fi
   while [[ "$1" != "" ]]; do
     case $1 in
       -inv )
