@@ -198,12 +198,14 @@ show_filesystems() {
     fi
   done
   # Print leftover
-  FINAL_TABLE="${FINAL_TABLE}${WHITE_B}${FS_NAME}${NC}"
-  FINAL_TABLE="${FINAL_TABLE} ${FS_TYPE} ${COUNT} ${USAGE_SUM} ${FS_HIGH} ${FS_LOW}"
-  if [[ "${F_DEVICE_FILES}" ]]; then
-    FINAL_TABLE="${FINAL_TABLE} ${OPEN_FILE_COUNT}"
+  if [[ "${FS_HIGH}" != "*" || ${F_DEVICE_FILES} != "1" ]]; then
+    FINAL_TABLE="${FINAL_TABLE}${WHITE_B}${FS_NAME}${NC}"
+    FINAL_TABLE="${FINAL_TABLE} ${FS_TYPE} ${COUNT} ${USAGE_SUM} ${FS_HIGH} ${FS_LOW}"
+    if [[ "${F_DEVICE_FILES}" ]]; then
+      FINAL_TABLE="${FINAL_TABLE} ${OPEN_FILE_COUNT}"
+    fi
+    FINAL_TABLE="${FINAL_TABLE} ${FS_MOUNT}\n"
   fi
-  FINAL_TABLE="${FINAL_TABLE} ${FS_MOUNT}\n"
   IFS="${PREV_IFS}"
   FINAL_TABLE=$(echo -e "${FINAL_TABLE}" | sort -k${SORT_COLUMN} ${SORT_PARAMS})
   if [[ ${F_DEVICE_FILES} ]]; then
