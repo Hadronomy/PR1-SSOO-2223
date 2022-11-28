@@ -142,12 +142,14 @@ show_filesystems() {
   if [[ ${USERS_FILTER} ]]; then
     USERS_FILTER_FORMATED=$(echo "${USERS_FILTER}" | sed -r 's/ /|/g')
   fi
-  SORT_COLUMN=1
-  SORT_PARAMS="-n"
+  SORT_COLUMN=2
+  SORT_PARAMS=""
   if [[ ${F_SOPEN} ]]; then
+    SORT_PARAMS="-n"
     SORT_COLUMN=7
   elif [[ ${F_SDEVICE} ]]; then
     SORT_COLUMN=3
+    SORT_PARAMS="-n"
   fi
   if [[ ${F_INVERT} ]]; then
     SORT_PARAMS="${SORT_PARAMS} -r"
